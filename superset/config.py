@@ -432,8 +432,18 @@ GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] =
 
 # EXTRA_CATEGORICAL_COLOR_SCHEMES is used for adding custom categorical color schemes
 # example code for "My custom warm to hot" color scheme
+EXTRA_CATEGORICAL_COLOR_SCHEMES = [
+    {
+        "id": 'funimationColors',
+        "description": 'Funimation Categorical Color Palette',
+        "label": 'Funimation Categorical Colors',
+        "colors":
+         ['#5B0BB5', '#FF149F', '#FFF11C', '#FE0000', '#96FF00', '#009DD9',
+         '#FF6600', '#5AAA46', '#990066', '#FFCC00', '#00ff99', '#44AAAA']
+    }]
 
 # This is merely a default
+# EXTRA_CATEGORICAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 
 # THEME_OVERRIDES is used for adding custom theme to superset
 # example code for "My theme" custom scheme
