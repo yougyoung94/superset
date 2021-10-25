@@ -61,9 +61,9 @@ export function AdvancedFrame(props: FrameComponentProps) {
         </DateFunctionTooltip>
       </div>
       <div className="control-label">
-        {t('START (INCLUSIVE)')}{' '}
+        {t('START')}{' '}
         <InfoTooltipWithTrigger
-          tooltip={t('Start date included in time range')}
+          tooltip={t('Start date of time range')}
           placement="right"
         />
       </div>
@@ -73,9 +73,9 @@ export function AdvancedFrame(props: FrameComponentProps) {
         onChange={e => onChange('since', e.target.value)}
       />
       <div className="control-label">
-        {t('END (EXCLUSIVE)')}{' '}
+        {t('END')}{' '}
         <InfoTooltipWithTrigger
-          tooltip={t('End date excluded from time range')}
+          tooltip={t('End date of time range')}
           placement="right"
         />
       </div>

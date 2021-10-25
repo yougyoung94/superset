@@ -68,21 +68,23 @@ export function toggleFaveStar(isStarred) {
 export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(id) {
   return function fetchFaveStarThunk(dispatch) {
-    return SupersetClient.get({
-      endpoint: `${FAVESTAR_BASE_URL}/${id}/count/`,
-    })
-      .then(({ json }) => {
-        if (json.count > 0) dispatch(toggleFaveStar(true));
+    if (id !== '') {
+      return SupersetClient.get({
+        endpoint: `${FAVESTAR_BASE_URL}/${id}/count/`,
       })
-      .catch(() =>
-        dispatch(
-          addDangerToast(
-            t(
-              'There was an issue fetching the favorite status of this dashboard.',
+        .then(({ json }) => {
+          if (json.count > 0) dispatch(toggleFaveStar(true));
+        })
+        .catch(() =>
+          dispatch(
+            addDangerToast(
+              t(
+                'There was an issue fetching the favorite status of this dashboard.',
+              ),
             ),
           ),
-        ),
-      );
+        );
+    }
   };
 }
 
@@ -272,6 +274,9 @@ export function fetchCharts(
         delay * i,
       );
     });
+    if (!document.hasFocus()) {
+      window.location.reload();
+    };
   };
 }
 

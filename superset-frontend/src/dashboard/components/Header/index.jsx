@@ -147,7 +147,6 @@ class Header extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      didNotifyMaxUndoHistoryToast: false,
       emphasizeUndo: false,
       showingPropertiesModal: false,
       showingReportModal: false,
@@ -170,7 +169,7 @@ class Header extends React.PureComponent {
   componentDidMount() {
     const { refreshFrequency, user, dashboardInfo } = this.props;
     this.startPeriodicRender(refreshFrequency * 1000);
-    if (this.canAddReports()) {
+    if (this.canAddReports() && dashboardInfo.id !== '') {
       // this is in case there is an anonymous user.
       this.props.fetchUISpecificReport(
         user.userId,
@@ -182,39 +181,43 @@ class Header extends React.PureComponent {
     }
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    const { user } = this.props;
+  componentDidUpdate(prevProps) {
+    if (this.props.refreshFrequency !== prevProps.refreshFrequency) {
+      const { refreshFrequency } = this.props;
+      this.startPeriodicRender(refreshFrequency * 1000);
+    }
     if (
-      UNDO_LIMIT - nextProps.undoLength <= 0 &&
-      !this.state.didNotifyMaxUndoHistoryToast
+      UNDO_LIMIT - this.props.undoLength <= 0 &&
+      prevProps.undoLength < this.props.undoLength
     ) {
-      this.setState(() => ({ didNotifyMaxUndoHistoryToast: true }));
       this.props.maxUndoHistoryToast();
     }
     if (
-      nextProps.undoLength > UNDO_LIMIT &&
+      this.props.undoLength > UNDO_LIMIT &&
       !this.props.maxUndoHistoryExceeded
     ) {
       this.props.setMaxUndoHistoryExceeded();
     }
     if (
       this.canAddReports() &&
-      nextProps.dashboardInfo.id !== this.props.dashboardInfo.id
+      this.props.dashboardInfo.id !== prevProps.dashboardInfo.id
     ) {
-      // this is in case there is an anonymous user.
-      this.props.fetchUISpecificReport(
-        user.userId,
-        'dashboard_id',
-        'dashboards',
-        nextProps.dashboardInfo.id,
-        user.email,
-      );
+      const { dashboardInfo, user } = this.props;
+      if (user && isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
+        // this is in case there is an anonymous user.
+        this.props.fetchUISpecificReport(
+          user.userId,
+          'dashboard_id',
+          'dashboards',
+          dashboardInfo.id,
+          user.email,
+        );
+      }
     }
   }
 
   componentWillUnmount() {
     stopPeriodicRender(this.refreshTimer);
-    this.props.setRefreshFrequency(0);
     clearTimeout(this.ctrlYTimeout);
     clearTimeout(this.ctrlZTimeout);
   }
@@ -292,14 +295,16 @@ class Header extends React.PureComponent {
       });
       this.props.addWarningToast(
         t(
-          `This dashboard is currently force refreshing; the next force refresh will be in %s.`,
+          `This dashboard is currently auto refreshing; the next auto refresh will be in %s.`,
           intervalMessage,
         ),
       );
 
+      let force = dashboardInfo.common.conf.DASHBOARD_AUTO_REFRESH_MODE === 'force';
+
       return fetchCharts(
         affectedCharts,
-        true,
+        force,
         interval * 0.2,
         dashboardInfo.id,
       );

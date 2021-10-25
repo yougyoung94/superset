@@ -18,7 +18,6 @@
  */
 import React, { useState, useMemo, useEffect } from 'react';
 import { t } from '@superset-ui/core';
-import { filter } from 'lodash';
 import {
   useListViewResource,
   useChartEditModal,
@@ -65,9 +64,7 @@ function ChartTable({
 }: ChartTableProps) {
   const history = useHistory();
   const filterStore = getFromLocalStorage(HOMEPAGE_CHART_FILTER, null);
-  const initialFilter = filterStore || TableTabTypes.EXAMPLES;
-
-  const filteredExamples = filter(examples, obj => 'viz_type' in obj);
+  const initialFilter = filterStore || TableTabTypes.FAVORITE;
 
   const {
     state: { loading, resourceCollection: charts, bulkSelectEnabled },
@@ -80,7 +77,7 @@ function ChartTable({
     t('chart'),
     addDangerToast,
     true,
-    initialFilter === 'Mine' ? mine : filteredExamples,
+    initialFilter === 'Favorite' ? [] : mine,
     [],
     false,
   );
@@ -132,12 +129,6 @@ function ChartTable({
         operator: 'chart_is_favorite',
         value: true,
       });
-    } else if (filterName === 'Examples') {
-      filters.push({
-        id: 'created_by',
-        operator: 'rel_o_m',
-        value: 0,
-      });
     }
     return filters;
   };
@@ -173,16 +164,6 @@ function ChartTable({
       },
     },
   ];
-  if (examples) {
-    menuTabs.push({
-      name: 'Examples',
-      label: t('Examples'),
-      onClick: () => {
-        setChartFilter(TableTabTypes.EXAMPLES);
-        setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.EXAMPLES);
-      },
-    });
-  }
 
   if (loading) return <LoadingCards cover={showThumbnails} />;
   return (

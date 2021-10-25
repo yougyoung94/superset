@@ -43,6 +43,7 @@ const DashboardContainer = React.lazy(
 const DashboardPage: FC = () => {
   const dispatch = useDispatch();
   const { addDangerToast } = useToasts();
+  const originalDocumentTitle = document.title;
   const { idOrSlug } = useParams<{ idOrSlug: string }>();
   const { result: dashboard, error: dashboardApiError } = useDashboard(
     idOrSlug,
@@ -63,12 +64,18 @@ const DashboardPage: FC = () => {
       dispatch(hydrateDashboard(dashboard, charts));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      dispatch(hydrateDashboard({ id: '' }, [] ))
+    }
   }, [readyToRender]);
 
   useEffect(() => {
     if (dashboard_title) {
       document.title = dashboard_title;
     }
+    return () => {
+      document.title = originalDocumentTitle;
+    };
   }, [dashboard_title]);
 
   useEffect(() => {

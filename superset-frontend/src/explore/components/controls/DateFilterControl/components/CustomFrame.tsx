@@ -31,7 +31,7 @@ import {
   UNTIL_GRAIN_OPTIONS,
   UNTIL_MODE_OPTIONS,
   MOMENT_FORMAT,
-  MIDNIGHT,
+  TODAY,
   customTimeRangeDecode,
   customTimeRangeEncode,
   dttmToMoment,
@@ -97,7 +97,7 @@ export function CustomFrame(props: FrameComponentProps) {
       props.onChange(
         customTimeRangeEncode({
           ...customRange,
-          anchorValue: MIDNIGHT,
+          anchorValue: TODAY,
           anchorMode: radioValue,
         }),
       );
@@ -110,14 +110,14 @@ export function CustomFrame(props: FrameComponentProps) {
       <Row gutter={24}>
         <Col span={12}>
           <div className="control-label">
-            {t('START (INCLUSIVE)')}{' '}
+            {t('START')}{' '}
             <InfoTooltipWithTrigger
-              tooltip={t('Start date included in time range')}
+              tooltip={t('Start date of time range')}
               placement="right"
             />
           </div>
           <Select
-            ariaLabel={t('START (INCLUSIVE)')}
+            ariaLabel={t('START')}
             options={SINCE_MODE_OPTIONS}
             value={sinceMode}
             onChange={(value: string) => onChange('sinceMode', value)}
@@ -162,14 +162,14 @@ export function CustomFrame(props: FrameComponentProps) {
         </Col>
         <Col span={12}>
           <div className="control-label">
-            {t('END (EXCLUSIVE)')}{' '}
+            {t('END')}{' '}
             <InfoTooltipWithTrigger
-              tooltip={t('End date excluded from time range')}
+              tooltip={t('End date of time range')}
               placement="right"
             />
           </div>
           <Select
-            ariaLabel={t('END (EXCLUSIVE)')}
+            ariaLabel={t('END')}
             options={UNTIL_MODE_OPTIONS}
             value={untilMode}
             onChange={(value: string) => onChange('untilMode', value)}

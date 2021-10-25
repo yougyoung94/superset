@@ -107,7 +107,7 @@ from superset.typing import FlaskResponse
 from superset.utils import core as utils, csv
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
-from superset.utils.core import ReservedUrlParameters
+from superset.utils.core import ReservedUrlParameters, TimeRangeEndpoint
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import check_dashboard_access
 from superset.views.base import (
@@ -721,6 +721,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         query_context = request.form.get("query_context")
         # Flash the SIP-15 message if the slice is owned by the current user and has not
         # been updated, i.e., is not using the [start, end) interval.
+        start, end = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
         if (
             config["SIP_15_ENABLED"]
             and slc
@@ -728,10 +729,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             and (
                 not form_data.get("time_range_endpoints")
                 or form_data["time_range_endpoints"]
-                != (
-                    utils.TimeRangeEndpoint.INCLUSIVE,
-                    utils.TimeRangeEndpoint.EXCLUSIVE,
-                )
+                != (TimeRangeEndpoint(start), TimeRangeEndpoint(end))
             )
         ):
             url = Href("/superset/explore/")(
@@ -740,8 +738,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         {
                             "slice_id": slc.id,
                             "time_range_endpoints": (
-                                utils.TimeRangeEndpoint.INCLUSIVE.value,
-                                utils.TimeRangeEndpoint.EXCLUSIVE.value,
+                                TimeRangeEndpoint(start),
+                                TimeRangeEndpoint(end),
                             ),
                         }
                     )
