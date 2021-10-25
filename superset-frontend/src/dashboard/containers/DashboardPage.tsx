@@ -64,9 +64,6 @@ const DashboardPage: FC = () => {
       dispatch(hydrateDashboard(dashboard, charts));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    return () => {
-      dispatch(hydrateDashboard({ id: '' }, [] ))
-    }
   }, [readyToRender]);
 
   useEffect(() => {
