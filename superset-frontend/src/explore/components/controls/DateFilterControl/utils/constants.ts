@@ -84,7 +84,8 @@ export const SINCE_MODE_OPTIONS: SelectOptionType[] = [
   { value: 'specific', label: t('Specific Date/Time') },
   { value: 'relative', label: t('Relative Date/Time') },
   { value: 'now', label: t('Now') },
-  { value: 'today', label: t('Midnight') },
+  // CUSTOM
+  { value: 'today', label: t('Today') },
 ];
 
 export const UNTIL_MODE_OPTIONS: SelectOptionType[] = SINCE_MODE_OPTIONS.slice();
@@ -109,4 +110,5 @@ export const SEVEN_DAYS_AGO = moment()
   .startOf('day')
   .subtract(7, 'days')
   .format(MOMENT_FORMAT);
-export const MIDNIGHT = moment().utc().startOf('day').format(MOMENT_FORMAT);
+// CUSTOM
+export const TODAY = moment().utc().startOf('day').format(MOMENT_FORMAT);

@@ -404,6 +404,10 @@ export function fetchCharts(
         delay * i,
       );
     });
+    // CUSTOM
+    if (!document.hasFocus()) {
+      window.location.reload();
+    }
   };
 }
 

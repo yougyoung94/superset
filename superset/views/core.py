@@ -735,6 +735,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         query_context = request.form.get("query_context")
         # Flash the SIP-15 message if the slice is owned by the current user and has not
         # been updated, i.e., is not using the [start, end) interval.
+        start, end = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
         if (
             config["SIP_15_ENABLED"]
             and slc
@@ -743,8 +744,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 not form_data.get("time_range_endpoints")
                 or form_data["time_range_endpoints"]
                 != (
-                    utils.TimeRangeEndpoint.INCLUSIVE,
-                    utils.TimeRangeEndpoint.EXCLUSIVE,
+                    utils.TimeRangeEndpoint(start),
+                    utils.TimeRangeEndpoint(end)
                 )
             )
         ):
@@ -754,8 +755,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         {
                             "slice_id": slc.id,
                             "time_range_endpoints": (
-                                utils.TimeRangeEndpoint.INCLUSIVE.value,
-                                utils.TimeRangeEndpoint.EXCLUSIVE.value,
+                                utils.TimeRangeEndpoint(start),
+                                utils.TimeRangeEndpoint(end),
                             ),
                         }
                     )
@@ -2857,7 +2858,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         get the schema access control settings for file upload in this database
         """
         if not request.args.get("db_id"):
-            return json_error_response("No database is allowed for your csv upload")
+            return json_error_response("No database is allowed for your file upload")
 
         db_id = int(request.args["db_id"])
         database = db.session.query(Database).filter_by(id=db_id).one()

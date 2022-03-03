@@ -1064,7 +1064,7 @@ const FiltersConfigForm = (
                       >
                         <DateFilterControl
                           name="time_range"
-                          endpoints={['inclusive', 'exclusive']}
+                          endpoints={['inclusive', 'inclusive']} // CUSTOM
                           onChange={timeRange => {
                             setNativeFilterFieldValues(form, filterId, {
                               time_range: timeRange,

@@ -261,6 +261,7 @@ class FilterBox extends React.PureComponent {
     const { showDateFilter } = this.props;
     const label = TIME_FILTER_LABELS.time_range;
     if (showDateFilter) {
+      // CUSTOM
       return (
         <div className="row space-1">
           <div
@@ -271,6 +272,7 @@ class FilterBox extends React.PureComponent {
               name={TIME_RANGE}
               label={label}
               description={t('Select start and end date')}
+              endpoints={['inclusive', 'inclusive']}
               onChange={newValue => {
                 this.changeFilter(TIME_RANGE, newValue);
               }}
