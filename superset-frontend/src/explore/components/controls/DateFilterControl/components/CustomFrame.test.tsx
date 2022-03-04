@@ -58,9 +58,10 @@ test('renders since and until with Now option', () => {
   expect(screen.getAllByText('Now').length).toBe(2);
 });
 
-test('renders since and until with Midnight option', () => {
+// CUSTOM
+test('renders since and until with Today option', () => {
   render(<CustomFrame onChange={jest.fn()} value={todayValue} />);
-  expect(screen.getAllByText('Midnight').length).toBe(2);
+  expect(screen.getAllByText('Today').length).toBe(2);
 });
 
 test('renders anchor with now option', () => {
@@ -96,7 +97,7 @@ test('triggers onChange when the value changes', () => {
 test('triggers onChange when the mode changes', () => {
   const onChange = jest.fn();
   render(<CustomFrame onChange={onChange} value={todayNowValue} />);
-  userEvent.click(screen.getByTitle('Midnight'));
+  userEvent.click(screen.getByTitle('Today')); // CUSTOM
   userEvent.click(screen.getByTitle('Relative Date/Time'));
   userEvent.click(screen.getAllByTitle('Now')[1]);
   userEvent.click(screen.getAllByTitle('Specific Date/Time')[1]);

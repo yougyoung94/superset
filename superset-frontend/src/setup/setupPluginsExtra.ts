@@ -16,6 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import setupGoogleAnalytics from './setupGoogleAnalytics';
 
 // For individual deployments to add custom overrides
-export default function setupPluginsExtra() {}
+export default function setupPluginsExtra() {
+  setupGoogleAnalytics();
+}

@@ -21,13 +21,15 @@ import { hot } from 'react-hot-loader/root';
 import { Provider as ReduxProvider } from 'react-redux';
 import {
   BrowserRouter as Router,
-  Switch,
   Route,
+  Switch,
   useLocation,
 } from 'react-router-dom';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { QueryParamProvider } from 'use-query-params';
+// @ts-ignore
+import Analytics from 'react-router-ga'; // CUSTOM
 import { initFeatureFlags } from 'src/featureFlags';
 import { ThemeProvider } from '@superset-ui/core';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
@@ -38,9 +40,10 @@ import FlashProvider from 'src/components/FlashProvider';
 import { theme } from 'src/preamble';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
-import { routes, isFrontendRoute } from 'src/views/routes';
+import { isFrontendRoute, routes } from 'src/views/routes';
 import { Logger } from 'src/logger/LogUtils';
 import { store } from './store';
+import ga from '../utils/googleAnalyticsConfig'; // CUSTOM
 
 setupApp();
 
@@ -87,17 +90,20 @@ const App = () => (
   <Router>
     <RootContextProviders>
       <Menu data={menu} isFrontendRoute={isFrontendRoute} />
-      <Switch>
-        {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
-          <Route path={path} key={path}>
-            <Suspense fallback={<Fallback />}>
-              <ErrorBoundary>
-                <Component user={user} {...props} />
-              </ErrorBoundary>
-            </Suspense>
-          </Route>
-        ))}
-      </Switch>
+      {/* CUSTOM */}
+      <Analytics id={ga.trackingId}>
+        <Switch>
+          {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
+            <Route path={path} key={path}>
+              <Suspense fallback={<Fallback />}>
+                <ErrorBoundary>
+                  <Component user={user} {...props} />
+                </ErrorBoundary>
+              </Suspense>
+            </Route>
+          ))}
+        </Switch>
+      </Analytics>
       <ToastContainer />
     </RootContextProviders>
   </Router>

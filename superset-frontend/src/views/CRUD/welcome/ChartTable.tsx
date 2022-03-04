@@ -18,7 +18,7 @@
  */
 import React, { useState, useMemo, useEffect } from 'react';
 import { t } from '@superset-ui/core';
-import { filter } from 'lodash';
+// CUSTOM
 import {
   useListViewResource,
   useChartEditModal,
@@ -61,13 +61,12 @@ function ChartTable({
   addSuccessToast,
   mine,
   showThumbnails,
-  examples,
 }: ChartTableProps) {
   const history = useHistory();
   const filterStore = getFromLocalStorage(HOMEPAGE_CHART_FILTER, null);
-  const initialFilter = filterStore || TableTabTypes.EXAMPLES;
+  const initialFilter = filterStore || TableTabTypes.FAVORITE; // CUSTOM
 
-  const filteredExamples = filter(examples, obj => 'viz_type' in obj);
+  // CUSTOM
 
   const {
     state: { loading, resourceCollection: charts, bulkSelectEnabled },
@@ -80,7 +79,7 @@ function ChartTable({
     t('chart'),
     addDangerToast,
     true,
-    initialFilter === 'Mine' ? mine : filteredExamples,
+    initialFilter === 'Favorite' ? [] : mine, // CUSTOM
     [],
     false,
   );
@@ -132,13 +131,7 @@ function ChartTable({
         operator: 'chart_is_favorite',
         value: true,
       });
-    } else if (filterName === 'Examples') {
-      filters.push({
-        id: 'created_by',
-        operator: 'rel_o_m',
-        value: 0,
-      });
-    }
+    } // CUSTOM
     return filters;
   };
 
@@ -173,16 +166,7 @@ function ChartTable({
       },
     },
   ];
-  if (examples) {
-    menuTabs.push({
-      name: 'Examples',
-      label: t('Examples'),
-      onClick: () => {
-        setChartFilter(TableTabTypes.EXAMPLES);
-        setInLocalStorage(HOMEPAGE_CHART_FILTER, TableTabTypes.EXAMPLES);
-      },
-    });
-  }
+  // CUSTOM
 
   if (loading) return <LoadingCards cover={showThumbnails} />;
   return (

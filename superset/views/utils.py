@@ -323,7 +323,9 @@ def get_time_range_endpoints(
         app.config["SIP_15_GRACE_PERIOD_END"]
         and date.today() >= app.config["SIP_15_GRACE_PERIOD_END"]
     ):
-        return (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE)
+        # CUSTOM
+        start, end = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
+        return TimeRangeEndpoint(start), TimeRangeEndpoint(end)
 
     endpoints = form_data.get("time_range_endpoints")
 
@@ -347,9 +349,11 @@ def get_time_range_endpoints(
 
     if endpoints:
         start, end = endpoints
-        return (TimeRangeEndpoint(start), TimeRangeEndpoint(end))
+        return TimeRangeEndpoint(start), TimeRangeEndpoint(end)
 
-    return (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE)
+    # CUSTOM
+    start, end = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
+    return TimeRangeEndpoint(start), TimeRangeEndpoint(end)
 
 
 # see all dashboard components type in

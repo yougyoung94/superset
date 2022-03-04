@@ -43,6 +43,8 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 
 const {
   mode = 'development',
+  gaTrackingId = 'dummy_id',  // CUSTOM
+  gaTagManagerId= 'dummy_id',  // CUSTOM
   devserverPort = 9000,
   measure = false,
   analyzeBundle = false,
@@ -115,6 +117,8 @@ const plugins = [
   // expose mode variable to other modules
   new webpack.DefinePlugin({
     'process.env.WEBPACK_MODE': JSON.stringify(mode),
+    'process.env.REACT_APP_GA_TRACKING_ID': JSON.stringify(gaTrackingId),  // CUSTOM
+    'process.env.REACT_APP_GA_TAG_MANAGER_ID': JSON.stringify(gaTagManagerId),  // CUSTOM
   }),
 
   // runs type checking on a separate process to speed up the build

@@ -39,8 +39,8 @@ COPY superset-frontend/package.json /app/superset-frontend/
 RUN cd /app \
     && mkdir -p superset/static \
     && touch superset/static/version_info.json \
-    && pip install --no-cache -r requirements/local.txt
-
+    && pip install --no-cache -r requirements/local.txt \
+    && pip install --no-cache -r requirements/docker.txt
 
 ######################################################################
 # Node stage to deal with static asset construction
@@ -64,9 +64,20 @@ RUN /frontend-mem-nag.sh \
 
 # Next, copy in the rest and let webpack do its thing
 COPY ./superset-frontend /app/superset-frontend
+
+# CUSTOM: Google Analytics
+ARG GOOGLE_ANALYTICS_TRACKING_ID=UA-192454100-1
+ARG GOOGLE_TAG_MANAGER_ID=GTM-MMJMSRD
+
+### CUSTOM: Copy custom code
+#COPY superset-frontend/src/. /app/superset-frontend/src/
+#COPY superset-frontend/webpack.config.js /app/superset-frontend/webpack.config.js
+
 # This seems to be the most expensive step
 RUN cd /app/superset-frontend \
         && npm run ${BUILD_CMD} \
+         --gaTrackingId=${GOOGLE_ANALYTICS_TRACKING_ID} \
+         --gaTagManagerId=${GOOGLE_TAG_MANAGER_ID} \
         && rm -rf node_modules
 
 
@@ -105,9 +116,11 @@ COPY superset /app/superset
 COPY setup.py MANIFEST.in README.md /app/
 RUN cd /app \
         && chown -R superset:superset * \
-        && pip install -e .
+        && pip install -e '.[cors, druid, elasticsearch, hive, mysql, postgres, presto, trino, snowflake]'
 
+# CUSTOM: Override docker entrypoint
 COPY ./docker/docker-entrypoint.sh /usr/bin/
+RUN chmod +x /usr/bin/docker-entrypoint.sh
 
 WORKDIR /app
 
@@ -118,48 +131,3 @@ HEALTHCHECK CMD curl -f "http://localhost:$SUPERSET_PORT/health"
 EXPOSE ${SUPERSET_PORT}
 
 ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
-
-######################################################################
-# Dev image...
-######################################################################
-FROM lean AS dev
-ARG GECKODRIVER_VERSION=v0.28.0
-ARG FIREFOX_VERSION=88.0
-
-COPY ./requirements/*.txt ./docker/requirements-*.txt/ /app/requirements/
-
-USER root
-
-RUN apt-get update -y \
-    && apt-get install -y --no-install-recommends libnss3 libdbus-glib-1-2 libgtk-3-0 libx11-xcb1
-
-# Install GeckoDriver WebDriver
-RUN wget https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O /tmp/geckodriver.tar.gz && \
-    tar xvfz /tmp/geckodriver.tar.gz -C /tmp && \
-    mv /tmp/geckodriver /usr/local/bin/geckodriver && \
-    rm /tmp/geckodriver.tar.gz
-
-# Install Firefox
-RUN wget https://download-installer.cdn.mozilla.net/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 -O /opt/firefox.tar.bz2 && \
-    tar xvf /opt/firefox.tar.bz2 -C /opt && \
-    ln -s /opt/firefox/firefox /usr/local/bin/firefox
-
-# Cache everything for dev purposes...
-RUN cd /app \
-    && pip install --no-cache -r requirements/docker.txt \
-    && pip install --no-cache -r requirements/requirements-local.txt || true
-USER superset
-
-
-######################################################################
-# CI image...
-######################################################################
-FROM lean AS ci
-
-COPY --chown=superset ./docker/docker-bootstrap.sh /app/docker/
-COPY --chown=superset ./docker/docker-init.sh /app/docker/
-COPY --chown=superset ./docker/docker-ci.sh /app/docker/
-
-RUN chmod a+x /app/docker/*.sh
-
-CMD /app/docker/docker-ci.sh

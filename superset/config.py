@@ -1,19 +1,3 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
 """The main config file for Superset
 
 All configuration in this file can be overridden by providing a superset_config
@@ -29,18 +13,20 @@ import os
 import re
 import sys
 from collections import OrderedDict
-from datetime import date, timedelta
-from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
+from datetime import datetime, date, timedelta  # CUSTOM
+from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union, Literal  # CUSTOM
 
 from cachelib.base import BaseCache
+from cachelib.redis import RedisCache  # CUSTOM
 from celery.schedules import crontab
 from dateutil import tz
-from flask import Blueprint
-from flask_appbuilder.security.manager import AUTH_DB
+from fab_auth_dynamic_roles.security import SupersetOAuthSecurityManager  #CUSTOM
+from flask import Blueprint, Flask, session  # CUSTOM
+from flask_appbuilder.security.manager import AUTH_OAUTH  # CUSTOM
 from pandas.io.parsers import STR_NA_VALUES
 from werkzeug.local import LocalProxy
 
-from superset.constants import CHANGE_ME_SECRET_KEY
+# CUSTOM
 from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
 from superset.typing import CacheConfig
@@ -50,6 +36,28 @@ from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 
 logger = logging.getLogger(__name__)
+
+# CUSTOM
+def env(key, default=None):
+  return os.getenv(key, default)
+
+
+# CUSTOM
+def make_session_permanent():
+    """
+    Enable maxAge for the cookie 'session'
+    """
+    session.permanent = True
+
+
+# CUSTOM: Set up max age of session to 24 hours
+PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
+
+
+# CUSTOM
+def FLASK_APP_MUTATOR(app: Flask) -> None:
+    app.before_request_funcs.setdefault(None, []).append(make_session_permanent)
+
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models
@@ -83,7 +91,7 @@ PACKAGE_JSON_FILE = os.path.join(BASE_DIR, "static", "assets", "package.json")
 #     "type": "image/png"
 #     "rel": "icon"
 # },
-FAVICONS = [{"href": "/static/assets/images/favicon.png"}]
+FAVICONS = [{"href": "/static/assets/images/logo-pubg-newstate-favicon.png"}]  # CUSTOM
 
 
 def _try_json_readversion(filepath: str) -> Optional[str]:
@@ -149,18 +157,18 @@ SUPERSET_WEBSERVER_TIMEOUT = int(timedelta(minutes=1).total_seconds())
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT = 0
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
 
-SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
-CUSTOM_SECURITY_MANAGER = None
-SQLALCHEMY_TRACK_MODIFICATIONS = False
+SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 1070000000  # CUSTOM
+CUSTOM_SECURITY_MANAGER = SupersetOAuthSecurityManager  # CUSTOM
+SQLALCHEMY_TRACK_MODIFICATIONS = True  # CUSTOM
 # ---------------------------------------------------------
 
 # Your App secret key. Make sure you override it on superset_config.py.
 # Use a strong complex alphanumeric string and use a tool to help you generate
 # a sufficiently random sequence, ex: openssl rand -base64 42"
-SECRET_KEY = CHANGE_ME_SECRET_KEY
+SECRET_KEY = env('SECRET_KEY', 'thisISaSECRET_1234')  # CUSTOM
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
+SQLALCHEMY_DATABASE_URI = f"postgresql+psycopg2://{env('DB_USER')}:{env('DB_PASS')}@{env('DB_HOST')}:{env('DB_PORT')}/{env('DB_NAME')}"  #CUSTOM
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
@@ -192,7 +200,10 @@ QUERY_SEARCH_LIMIT = 1000
 WTF_CSRF_ENABLED = True
 
 # Add endpoints that need to be exempt from CSRF protection
-WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log", "superset.charts.api.data"]
+WTF_CSRF_EXEMPT_LIST = ["superset.views.core.log"]  # CUSTOM
+
+# CUSTOM: A CSRF token that expires in 1 year
+WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
 
 # Whether to run the web server in debug mode or not
 DEBUG = os.environ.get("FLASK_ENV") == "development"
@@ -209,7 +220,7 @@ SHOW_STACKTRACE = True
 
 # Use all X-Forwarded headers when ENABLE_PROXY_FIX is True.
 # When proxying to a different port, set "x_port" to 0 to avoid downstream issues.
-ENABLE_PROXY_FIX = False
+ENABLE_PROXY_FIX = True  # CUSTOM
 PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
 
 # ------------------------------
@@ -219,8 +230,8 @@ PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefi
 APP_NAME = "Superset"
 
 # Specify the App icon
-APP_ICON = "/static/assets/images/superset-logo-horiz.png"
-APP_ICON_WIDTH = 126
+APP_ICON = "/static/assets/images/logo-pubg-newstate.png"  # CUSTOM
+APP_ICON_WIDTH = 75  # CUSTOM
 
 # Specify where clicking the logo would take the user
 # e.g. setting it to '/' would take the user to '/superset/welcome/'
@@ -265,27 +276,43 @@ DRUID_METADATA_LINKS_ENABLED = True
 # AUTH_DB : Is for database (username/password)
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
-AUTH_TYPE = AUTH_DB
+AUTH_TYPE = AUTH_OAUTH  # CUSTOM
 
 # Uncomment to setup Full admin role name
-# AUTH_ROLE_ADMIN = 'Admin'
+AUTH_ROLE_ADMIN = 'Admin'  # CUSTOM
 
 # Uncomment to setup Public role name, no authentication needed
 # AUTH_ROLE_PUBLIC = 'Public'
 
 # Will allow user self registration
-# AUTH_USER_REGISTRATION = True
+AUTH_USER_REGISTRATION = True  # CUSTOM
 
 # The default user self registration role
-# AUTH_USER_REGISTRATION_ROLE = "Public"
+AUTH_USER_REGISTRATION_ROLE = "Public"  # CUSTOM
 
 # When using LDAP Auth, setup the LDAP server
 # AUTH_LDAP_SERVER = "ldap://ldapserver.new"
 
 # Uncomment to setup OpenID providers example for OpenID authentication
-# OPENID_PROVIDERS = [
-#    { 'name': 'Yahoo', 'url': 'https://open.login.yahoo.com/' },
-#    { 'name': 'Flickr', 'url': 'https://www.flickr.com/<username>' },
+OAUTH_PROVIDERS = [  # CUSTOM
+    {
+        "name": "azure",
+        "icon": "fa-windows",
+        "token_key": "access_token",
+        "remote_app": {
+            "client_id": env("OAUTH_CLIENT_ID"),
+            "client_secret": env("OAUTH_CLIENT_SECRET"),
+            "api_base_url": f"https://login.microsoftonline.com/{env('OAUTH_URL')}/oauth2",
+            "client_kwargs": {
+                "scope": "User.read name preferred_username email profile upn",
+                "resource": env("OAUTH_CLIENT_ID"),
+            },
+            "request_token_url": None,
+            "access_token_url": f"https://login.microsoftonline.com/{env('OAUTH_URL')}/oauth2/token",
+            "authorize_url": f"https://login.microsoftonline.com/{env('OAUTH_URL')}/oauth2/authorize",
+        },
+    },
+]
 
 # ---------------------------------------------------
 # Roles config
@@ -372,11 +399,11 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DISPLAY_MARKDOWN_HTML": True,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
-    "DASHBOARD_NATIVE_FILTERS": True,
+    "DASHBOARD_NATIVE_FILTERS": False,  # CUSTOM
     "DASHBOARD_CROSS_FILTERS": False,
     "DASHBOARD_NATIVE_FILTERS_SET": False,
     "DASHBOARD_FILTERS_EXPERIMENTAL": False,
-    "GLOBAL_ASYNC_QUERIES": False,
+    "GLOBAL_ASYNC_QUERIES": True,  # CUSTOM
     "VERSIONED_EXPORT": False,
     # Note that: RowLevelSecurityFilter is only given by default to the Admin role
     # and the Admin Role does have the all_datasources security permission.
@@ -551,13 +578,21 @@ IMG_UPLOAD_URL = "/static/uploads/"
 
 # Default cache timeout, applies to all cache backends unless specifically overridden in
 # each cache config.
-CACHE_DEFAULT_TIMEOUT = int(timedelta(days=1).total_seconds())
+CACHE_DEFAULT_TIMEOUT = int(timedelta(days=1).total_seconds()) # CUSTOM
 
 # Default cache for Superset objects
-CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+CACHE_CONFIG: CacheConfig = {  # CUSTOM
+    'CACHE_TYPE': 'redis',
+    'CACHE_KEY_PREFIX': 'superset_',
+    'CACHE_REDIS_HOST': env('REDIS_HOST'),
+    'CACHE_REDIS_PORT': env('REDIS_PORT'),
+    'CACHE_REDIS_PASSWORD': env('REDIS_PASSWORD'),
+    'CACHE_REDIS_DB': 1,
+    'CACHE_REDIS_URL': f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/1"
+}
 
 # Cache for datasource metadata and query results
-DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+DATA_CACHE_CONFIG: CacheConfig = CACHE_CONFIG  # CUSTOM
 
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
@@ -686,7 +721,7 @@ DISPLAY_MAX_ROW = 10000
 
 # Default row limit for SQL Lab queries. Is overridden by setting a new limit in
 # the SQL Lab UI
-DEFAULT_SQLLAB_LIMIT = 1000
+DEFAULT_SQLLAB_LIMIT = 10000  # CUSTOM
 
 # Maximum number of tables/views displayed in the dropdown window in SQL Lab.
 MAX_TABLE_NAMES = 3000
@@ -695,6 +730,9 @@ MAX_TABLE_NAMES = 3000
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
+# CUSTOM
+# Force refresh while auto-refresh in dashboard
+DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "fetch"
 
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
@@ -702,33 +740,37 @@ SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
 
 class CeleryConfig:  # pylint: disable=too-few-public-methods
-    BROKER_URL = "sqla+sqlite:///celerydb.sqlite"
+    # CUSTOM
+    BROKER_URL = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
     CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks")
-    CELERY_RESULT_BACKEND = "db+sqlite:///celery_results.sqlite"
+    CELERY_RESULT_BACKEND = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
     CELERYD_LOG_LEVEL = "DEBUG"
     CELERYD_PREFETCH_MULTIPLIER = 1
+    CELERYD_MAX_TASKS_PER_CHILD = 5
     CELERY_ACKS_LATE = False
     CELERY_ANNOTATIONS = {
-        "sql_lab.get_sql_results": {"rate_limit": "100/s"},
+        "sql_lab.get_sql_results": {
+            "rate_limit": "100/s"
+        },
         "email_reports.send": {
             "rate_limit": "1/s",
             "time_limit": int(timedelta(seconds=120).total_seconds()),
             "soft_time_limit": int(timedelta(seconds=150).total_seconds()),
             "ignore_result": True,
         },
+        "tasks.add": {
+            "rate_limit": "10/s"
+        }
     }
     CELERYBEAT_SCHEDULE = {
-        "email_reports.schedule_hourly": {
-            "task": "email_reports.schedule_hourly",
-            "schedule": crontab(minute=1, hour="*"),
-        },
-        "reports.scheduler": {
-            "task": "reports.scheduler",
-            "schedule": crontab(minute="*", hour="*"),
-        },
-        "reports.prune_log": {
-            "task": "reports.prune_log",
-            "schedule": crontab(minute=0, hour=0),
+        'cache-warmup-minutely': {
+            'task': 'cache-warmup',
+            'schedule': crontab(),  # minutely
+            'kwargs': {
+                'strategy_name': 'top_n_dashboards',
+                'top_n': 5,
+                'since': '7 days ago',
+            },
         },
     }
 
@@ -828,7 +870,12 @@ SQLLAB_CTAS_SCHEMA_NAME_FUNC: Optional[
 
 # If enabled, it can be used to store the results of long-running queries
 # in SQL Lab by using the "Run Async" button/feature
-RESULTS_BACKEND: Optional[BaseCache] = None
+RESULTS_BACKEND: Optional[BaseCache] = RedisCache(  # CUSTOM
+    host=env('REDIS_HOST'),
+    port=env('REDIS_PORT'),
+    password=env('REDIS_PASSWORD'),
+    key_prefix='superset_results_results_'
+)
 
 # Use PyArrow and MessagePack for async query results serialization,
 # rather than JSON. This feature requires additional testing from the
@@ -996,7 +1043,9 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
     security_manager: LocalProxy,
     database: "Database",
 ) -> str:
-    return sql
+    # CUSTOM
+    dttm = datetime.now().isoformat()
+    return f"-- [SQL LAB] {user_name} {dttm}\n{sql}"
 
 
 # Enable / disable scheduled email reports
@@ -1094,7 +1143,16 @@ WEBDRIVER_CONFIGURATION: Dict[Any, Any] = {"service_log_path": "/dev/null"}
 # Additional args to be passed as arguments to the config object
 # Note: these options are Chrome-specific. For FF, these should
 # only include the "--headless" arg
-WEBDRIVER_OPTION_ARGS = ["--headless", "--marionette"]
+WEBDRIVER_OPTION_ARGS = [  # CUSTOM
+        "--force-device-scale-factor=2.0",
+        "--high-dpi-support=2.0",
+        "--headless",
+        "--disable-gpu",
+        "--disable-dev-shm-usage",
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-extensions",
+]
 
 # The base URL to query for accessing the user interface
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
@@ -1132,11 +1190,7 @@ SQL_VALIDATORS_BY_ENGINE = {
 # use the "engine_name" attribute of the corresponding DB engine spec
 # in `superset/db_engine_specs/`.
 PREFERRED_DATABASES: List[str] = [
-    "PostgreSQL",
-    "Presto",
-    "MySQL",
-    "SQLite",
-    # etc.
+    "Snowflake",  # CUSTOM
 ]
 
 # Do you want Talisman enabled?
@@ -1194,7 +1248,7 @@ SSL_CERT_PATH: Optional[str] = None
 # indefinite.
 SIP_15_ENABLED = True
 SIP_15_GRACE_PERIOD_END: Optional[date] = None  # exclusive
-SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS = ["unknown", "inclusive"]
+SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS = ["inclusive", "inclusive"] # CUSTOM
 SIP_15_TOAST_MESSAGE = (
     "Action Required: Preview then save your chart using the "
     'new time range endpoints <a target="_blank" href="{url}" '
@@ -1217,9 +1271,10 @@ SQLA_TABLE_MUTATOR = lambda table: table
 # Global async query config options.
 # Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
 GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
-    "port": 6379,
-    "host": "127.0.0.1",
-    "password": "",
+    # CUSTOM
+    "port": env('REDIS_PORT'),
+    "host": env('REDIS_HOST'),
+    "password": env('REDIS_PASSWORD'),
     "db": 0,
     "ssl": False,
 }
@@ -1229,7 +1284,7 @@ GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE = 1000000
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
-GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"
+GLOBAL_ASYNC_QUERIES_JWT_SECRET = env('GLOBAL_ASYNC_QUERIES_JWT_SECRET')  # CUSTOM
 GLOBAL_ASYNC_QUERIES_TRANSPORT = "polling"
 GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
     timedelta(milliseconds=500).total_seconds() * 1000

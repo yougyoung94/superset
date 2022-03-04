@@ -148,7 +148,7 @@ class Header extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      didNotifyMaxUndoHistoryToast: false,
+      // CUSTOM
       emphasizeUndo: false,
       showingPropertiesModal: false,
       showingReportModal: false,
@@ -183,33 +183,39 @@ class Header extends React.PureComponent {
     }
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    const { user } = this.props;
+  // CUSTOM
+  componentDidUpdate(prevProps) {
+    if (this.props.refreshFrequency !== prevProps.refreshFrequency) {
+      const { refreshFrequency } = this.props;
+      this.startPeriodicRender(refreshFrequency * 1000);
+    }
     if (
-      UNDO_LIMIT - nextProps.undoLength <= 0 &&
-      !this.state.didNotifyMaxUndoHistoryToast
+      UNDO_LIMIT - this.props.undoLength <= 0 &&
+      prevProps.undoLength < this.props.undoLength
     ) {
-      this.setState(() => ({ didNotifyMaxUndoHistoryToast: true }));
       this.props.maxUndoHistoryToast();
     }
     if (
-      nextProps.undoLength > UNDO_LIMIT &&
+      this.props.undoLength > UNDO_LIMIT &&
       !this.props.maxUndoHistoryExceeded
     ) {
       this.props.setMaxUndoHistoryExceeded();
     }
     if (
       this.canAddReports() &&
-      nextProps.dashboardInfo.id !== this.props.dashboardInfo.id
+      this.props.dashboardInfo.id !== prevProps.dashboardInfo.id
     ) {
-      // this is in case there is an anonymous user.
-      this.props.fetchUISpecificReport(
-        user.userId,
-        'dashboard_id',
-        'dashboards',
-        nextProps.dashboardInfo.id,
-        user.email,
-      );
+      const { dashboardInfo, user } = this.props;
+      if (user && isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
+        // this is in case there is an anonymous user.
+        this.props.fetchUISpecificReport(
+          user.userId,
+          'dashboard_id',
+          'dashboards',
+          dashboardInfo.id,
+          user.email,
+        );
+      }
     }
   }
 
@@ -293,14 +299,19 @@ class Header extends React.PureComponent {
       });
       this.props.addWarningToast(
         t(
-          `This dashboard is currently force refreshing; the next force refresh will be in %s.`,
+          // CUSTOM
+          `This dashboard is currently auto refreshing; the next auto refresh will be in %s.`,
           intervalMessage,
         ),
       );
 
+      // CUSTOM
+      const force =
+        dashboardInfo.common.conf.DASHBOARD_AUTO_REFRESH_MODE === 'force';
+
       return fetchCharts(
         affectedCharts,
-        true,
+        force,
         interval * 0.2,
         dashboardInfo.id,
       );
@@ -360,18 +371,23 @@ class Header extends React.PureComponent {
 
     // make sure positions data less than DB storage limitation:
     const positionJSONLength = safeStringify(positions).length;
-    const limit =
+    // CUSTOM
+    const expectedLimit =
       dashboardInfo.common.conf.SUPERSET_DASHBOARD_POSITION_DATA_LIMIT ||
       DASHBOARD_POSITION_DATA_LIMIT;
-    if (positionJSONLength >= limit) {
+    if (positionJSONLength >= expectedLimit) {
       this.props.addDangerToast(
         t(
-          'Your dashboard is too large. Please reduce its size before saving it.',
+          `Your dashboard is too large: ${positionJSONLength}. Please consider reducing its size.`,
         ),
       );
     } else {
-      if (positionJSONLength >= limit * 0.9) {
-        this.props.addWarningToast('Your dashboard is near the size limit.');
+      if (positionJSONLength >= expectedLimit * 0.9) {
+        this.props.addWarningToast(
+          t(
+            `Your dashboard is near the expected size limit: ${expectedLimit}.`,
+          ),
+        );
       }
 
       this.props.onSave(data, dashboardInfo.id, SAVE_TYPE_OVERWRITE);

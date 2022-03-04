@@ -18,7 +18,7 @@
  */
 import React, { useState, useMemo, useEffect } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
-import { filter } from 'lodash';
+// CUSTOM
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import {
   Dashboard,
@@ -56,14 +56,13 @@ function DashboardTable({
   addDangerToast,
   addSuccessToast,
   mine,
-  showThumbnails,
-  examples,
+  showThumbnails, // CUSTOM
 }: DashboardTableProps) {
   const history = useHistory();
   const filterStore = getFromLocalStorage(HOMEPAGE_DASHBOARD_FILTER, null);
-  const defaultFilter = filterStore || TableTabTypes.EXAMPLES;
+  const defaultFilter = filterStore || TableTabTypes.FAVORITE; // CUSTOM
 
-  const filteredExamples = filter(examples, obj => !('viz_type' in obj));
+  // CUSTOM
 
   const {
     state: { loading, resourceCollection: dashboards },
@@ -76,7 +75,7 @@ function DashboardTable({
     t('dashboard'),
     addDangerToast,
     true,
-    defaultFilter === 'Mine' ? mine : filteredExamples,
+    defaultFilter === 'Favorite' ? [] : mine, // CUSTOM
     [],
     false,
   );
@@ -142,13 +141,7 @@ function DashboardTable({
         operator: 'dashboard_is_favorite',
         value: true,
       });
-    } else if (filterName === 'Examples') {
-      filters.push({
-        id: 'created_by',
-        operator: 'rel_o_m',
-        value: 0,
-      });
-    }
+    } // CUSTOM
     return filters;
   };
 
@@ -171,16 +164,7 @@ function DashboardTable({
     },
   ];
 
-  if (examples) {
-    menuTabs.push({
-      name: 'Examples',
-      label: t('Examples'),
-      onClick: () => {
-        setDashboardFilter(TableTabTypes.EXAMPLES);
-        setInLocalStorage(HOMEPAGE_DASHBOARD_FILTER, TableTabTypes.EXAMPLES);
-      },
-    });
-  }
+  // CUSTOM
 
   const getData = (filter: string) =>
     fetchData({
