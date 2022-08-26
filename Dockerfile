@@ -39,7 +39,8 @@ COPY superset-frontend/package.json /app/superset-frontend/
 RUN cd /app \
     && mkdir -p superset/static \
     && touch superset/static/version_info.json \
-    && pip install --no-cache -r requirements/local.txt
+    && pip install --no-cache -r requirements/local.txt \
+    && pip install --no-cache -r requirements/docker.txt
 
 
 ######################################################################
@@ -82,7 +83,8 @@ ENV LANG=C.UTF-8 \
     FLASK_APP="superset.app:create_app()" \
     PYTHONPATH="/app/pythonpath" \
     SUPERSET_HOME="/app/superset_home" \
-    SUPERSET_PORT=8088
+    SUPERSET_PORT=8088 \
+    DD_GEVENT_PATCH_ALL=true
 
 RUN mkdir -p ${PYTHONPATH} \
         && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
@@ -105,7 +107,8 @@ COPY superset /app/superset
 COPY setup.py MANIFEST.in README.md /app/
 RUN cd /app \
         && chown -R superset:superset * \
-        && pip install -e .
+        && pip install -e . \
+        && pip install ddtrace==0.56.0
 
 COPY ./docker/docker-entrypoint.sh /usr/bin/
 

@@ -644,7 +644,7 @@ LOGGING_CONFIGURATOR = DefaultLoggingConfigurator()
 # Console Log Settings
 
 LOG_FORMAT = "%(asctime)s:%(levelname)s:%(name)s:%(message)s"
-LOG_LEVEL = "DEBUG"
+LOG_LEVEL = "INFO"
 
 # ---------------------------------------------------
 # Enable Time Rotate Log Handler
